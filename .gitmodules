@@ -1,0 +1,3 @@
+[submodule "wuffs-sys/vendor"]
+	path = wuffs-sys/vendor/wuffs
+	url = https://github.com/google/wuffs.git

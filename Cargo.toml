@@ -1,0 +1,5 @@
+[workspace]
+members = ["wuffs", "wuffs-sys"]
+
+[patch.crates-io]
+wuffs-sys = { path = "wuffs-sys" }
