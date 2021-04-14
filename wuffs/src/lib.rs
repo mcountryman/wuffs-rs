@@ -5,36 +5,36 @@ use wuffs_sys::{
 };
 
 pub struct WuffsAdler32 {
-  inner: wuffs_adler32__hasher,
+  inner: *mut wuffs_adler32__hasher,
 }
 
 impl WuffsAdler32 {
   pub fn new() -> Self {
     unsafe {
       let inner = wuffs_adler32__hasher__alloc();
-
-      wuffs_adler32__hasher__initialize(
-        inner,
-        sizeof__wuffs_adler32__hasher(),
-        WUFFS_VERSION as _,
-        0,
-      );
+      if inner.is_null() {
+        panic!("Failed to alloc adler32");
+      }
 
       // TODO: Check status
 
-      Self { inner: *inner }
+      Self { inner: inner }
     }
   }
 
-  pub fn update(&mut self, buf: &[u8]) -> u32 {
+  pub fn update(&self, buf: &[u8]) -> u32 {
     unsafe {
       let mut slice = buf.to_vec();
+
       let slice = wuffs_base__slice_u8 {
         ptr: slice.as_mut_ptr(),
         len: buf.len() as _,
       };
 
-      wuffs_adler32__hasher__update_u32(&mut self.inner as *mut _, slice)
+      #[allow(clippy::forget_copy)]
+      std::mem::forget(slice);
+
+      wuffs_adler32__hasher__update_u32(self.inner, slice)
     }
   }
 }
@@ -44,6 +44,8 @@ mod tests {
   #[test]
   fn test_adler32() {
     let mut adler = super::WuffsAdler32::new();
-    let sum = adler.update(b"");
+    let sum = adler.update(b"rust is pretty cool, man");
+
+    assert_eq!(sum, 1921255656);
   }
 }
