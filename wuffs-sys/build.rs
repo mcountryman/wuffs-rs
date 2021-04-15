@@ -18,6 +18,13 @@ fn main() {
 
   let bindings = bindgen::Builder::default()
     .header("src/lib.h")
+    .allowlist_var(".*wuffs.*")
+    .allowlist_type(".*wuffs.*")
+    .allowlist_function(".*wuffs.*")
+    .allowlist_var(".*WUFFS.*")
+    .allowlist_type(".*WUFFS.*")
+    .allowlist_function(".*WUFFS.*")
+    .allowlist_recursively(true)
     // .allowlist_function("")
     .parse_callbacks(Box::new(bindgen::CargoCallbacks))
     .generate()
