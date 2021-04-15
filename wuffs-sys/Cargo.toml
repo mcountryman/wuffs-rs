@@ -2,7 +2,7 @@
 name = "wuffs-sys"
 version = "0.1.0"
 edition = "2018"
-license = "Apache 2.0"
+license = "Apache-2.0"
 description = "Bindings to wuffs."
 include = ["src/", "build.rs", "vendor/wuffs/release/c/*"]
 
