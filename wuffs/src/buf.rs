@@ -1,44 +1,57 @@
 use crate::slice::WuffsSlice;
 use wuffs_sys::{wuffs_base__io_buffer, wuffs_base__io_buffer_meta};
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct WuffsBuf(wuffs_base__io_buffer);
 
-#[derive(Copy, Clone)]
-pub struct WuffsBufferMeta(wuffs_base__io_buffer_meta);
-
 impl WuffsBuf {
-  pub fn with_capacity(_: usize) -> WuffsBuf {
-    todo!()
+  pub fn from_slice(buf: &mut [u8]) -> Self {
+    Self(wuffs_base__io_buffer {
+      data: WuffsSlice::from(buf).into_inner(),
+      meta: wuffs_base__io_buffer_meta {
+        wi: 0,
+        ri: 0,
+        pos: 0,
+        closed: false,
+      },
+    })
   }
 
-  pub fn data(&self) -> WuffsSlice<'_, u8> {
-    WuffsSlice::from(self.0.data)
+  pub unsafe fn from_slice_readonly(buf: &[u8]) -> Self {
+    let len = buf.len() as _;
+
+    Self(wuffs_base__io_buffer {
+      data: WuffsSlice::from_readonly(buf),
+      meta: wuffs_base__io_buffer_meta {
+        wi: len,
+        ri: 0,
+        pos: 0,
+        closed: true,
+      },
+    })
   }
 
-  pub fn meta(&self) -> WuffsBufferMeta {
-    WuffsBufferMeta(self.0.meta)
+  pub fn as_mut_ptr(&mut self) -> *mut wuffs_base__io_buffer {
+    &mut self.0 as *mut _
   }
-}
 
-impl WuffsBufferMeta {
+  pub fn len(&self) -> usize {
+    self.0.data.len as _
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.len() == 0
+  }
+
   pub fn pos(&self) -> usize {
-    self.0.pos as _
+    self.0.meta.pos as _
   }
 
-  pub fn closed(&self) -> bool {
-    self.0.closed
+  pub fn read(&self) -> usize {
+    self.0.meta.ri as _
   }
 
-  pub fn write_increment(&self) -> usize {
-    self.0.wi as _
-  }
-
-  pub fn read_increment(&self) -> usize {
-    self.0.ri as _
-  }
-
-  pub fn into_inner(self) -> wuffs_base__io_buffer_meta {
-    self.0
+  pub fn written(&self) -> usize {
+    self.0.meta.wi as _
   }
 }

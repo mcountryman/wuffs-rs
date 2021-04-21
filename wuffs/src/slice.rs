@@ -9,7 +9,7 @@ pub enum WuffsSlice<'a, T: WuffsSliceImpl> {
 }
 
 impl<T: WuffsSliceImpl> WuffsSlice<'_, T> {
-  pub fn from(inner: T::Native) -> Self {
+  pub fn from_inner(inner: T::Native) -> Self {
     Self::Borrowed(WuffsSliceBorrowed::from(inner))
   }
 
@@ -26,7 +26,7 @@ impl<T: WuffsSliceImpl> WuffsSlice<'_, T> {
   /// Potential cast to `*mut` ptr underlying with the hope the underlying data isn't
   /// modified.
   pub unsafe fn from_readonly(slice: &[T]) -> T::Native {
-    T::from_readonly(slice)
+    T::from_ptr(slice.as_ptr() as *mut _, slice.len())
   }
 }
 
@@ -67,7 +67,7 @@ pub struct WuffsSliceOwned<T: WuffsSliceImpl> {
 
 impl<T: WuffsSliceImpl> WuffsSliceOwned<T> {
   pub fn new(mut data: Vec<T>) -> Self {
-    let inner = T::from(&mut data);
+    let inner = T::from_ptr(data.as_mut_ptr(), data.len());
 
     Self { data, inner }
   }
@@ -98,7 +98,7 @@ pub struct WuffsSliceBorrowed<'a, T: WuffsSliceImpl> {
 impl<'a, T: WuffsSliceImpl> WuffsSliceBorrowed<'a, T> {
   pub fn new(slice: &'a mut [T]) -> Self {
     Self {
-      inner: T::from(slice),
+      inner: T::from_ptr(slice.as_mut_ptr(), slice.len()),
       phantom: Default::default(),
     }
   }
@@ -126,14 +126,7 @@ impl<T: WuffsSliceImpl> Deref for WuffsSliceBorrowed<'_, T> {
 pub trait WuffsSliceImpl: Sized + Clone {
   type Native: WuffsSliceNative<Self> + Clone;
 
-  fn from(slice: &mut [Self]) -> Self::Native;
-
-  /// Convert read-only slice reference into a `Self::Native`
-  ///
-  /// # Safety
-  /// Potential cast to `*mut` ptr underlying with the hope the underlying data isn't
-  /// modified.
-  unsafe fn from_readonly(slice: &[Self]) -> Self::Native;
+  fn from_ptr(ptr: *mut Self, len: usize) -> Self::Native;
 }
 
 pub trait WuffsSliceNative<T> {
@@ -143,18 +136,8 @@ pub trait WuffsSliceNative<T> {
 impl WuffsSliceImpl for u8 {
   type Native = wuffs_base__slice_u8;
 
-  fn from(slice: &mut [Self]) -> Self::Native {
-    wuffs_base__slice_u8 {
-      ptr: slice.as_mut_ptr() as *mut _,
-      len: slice.len() as _,
-    }
-  }
-
-  unsafe fn from_readonly(slice: &[Self]) -> Self::Native {
-    wuffs_base__slice_u8 {
-      ptr: slice.as_ptr() as *mut _,
-      len: slice.len() as _,
-    }
+  fn from_ptr(ptr: *mut Self, len: usize) -> Self::Native {
+    wuffs_base__slice_u8 { ptr, len: len as _ }
   }
 }
 
