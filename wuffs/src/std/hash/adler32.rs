@@ -4,6 +4,8 @@ use crate::{
 };
 use wuffs_sys::*;
 
+use super::WuffsHash;
+
 #[derive(Clone)]
 pub struct WuffsAdler32(WuffsBox<wuffs_adler32__hasher>);
 
@@ -25,11 +27,10 @@ impl WuffsAdler32 {
       Ok(Self(inner))
     }
   }
+}
 
-  pub fn update<S>(&mut self, buf: S) -> u32
-  where
-    S: IntoWuffsSlice,
-  {
+impl WuffsHash for WuffsAdler32 {
+  fn update(&mut self, buf: impl IntoWuffsSlice) -> u32 {
     unsafe {
       wuffs_adler32__hasher__update_u32(self.0.as_mut_ptr(), buf.into_wuffs_slice_u8())
     }
@@ -38,6 +39,8 @@ impl WuffsAdler32 {
 
 #[cfg(test)]
 mod tests {
+  use crate::std::hash::WuffsHash;
+
   #[test]
   fn test_adler32() {
     let mut adler = super::WuffsAdler32::new().unwrap();
