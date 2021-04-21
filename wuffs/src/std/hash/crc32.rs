@@ -1,7 +1,8 @@
 use super::WuffsHash;
 use crate::{
+  boxed::{WuffsBox, WuffsBoxed},
+  slice::WuffsSlice,
   status::{IntoResult, WuffsError},
-  types::{IntoWuffsSlice, WuffsBox},
 };
 use wuffs_sys::*;
 
@@ -11,13 +12,12 @@ pub struct WuffsCrc32(WuffsBox<wuffs_crc32__ieee_hasher>);
 impl WuffsCrc32 {
   pub fn new() -> Result<Self, WuffsError> {
     unsafe {
-      let size = sizeof__wuffs_crc32__ieee_hasher();
-      let mut inner = WuffsBox::new(size as _);
+      let mut inner = WuffsBox::new();
 
       wuffs_crc32__ieee_hasher__initialize(
         //
         inner.as_mut_ptr(),
-        size,
+        inner.size() as _,
         WUFFS_VERSION as _,
         0x00000001, // WUFFS_INITIALIZE__ALREADY_ZEROED
       )
@@ -29,10 +29,19 @@ impl WuffsCrc32 {
 }
 
 impl WuffsHash for WuffsCrc32 {
-  fn update(&mut self, buf: impl IntoWuffsSlice) -> u32 {
+  fn update<'a, S>(&mut self, buf: S) -> u32
+  where
+    S: Into<WuffsSlice<'a, u8>>,
+  {
     unsafe {
-      wuffs_crc32__ieee_hasher__update_u32(self.0.as_mut_ptr(), buf.into_wuffs_slice_u8())
+      wuffs_crc32__ieee_hasher__update_u32(self.0.as_mut_ptr(), buf.into().into_inner())
     }
+  }
+}
+
+impl WuffsBoxed for wuffs_crc32__ieee_hasher {
+  fn size() -> usize {
+    unsafe { sizeof__wuffs_crc32__ieee_hasher() as _ }
   }
 }
 

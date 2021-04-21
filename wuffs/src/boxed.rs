@@ -1,20 +1,23 @@
 use std::marker::PhantomData;
-use wuffs_sys::wuffs_base__slice_u8;
 
 /// Heap allocated type with runtime defined size.
 #[derive(Clone)]
-pub struct WuffsBox<T> {
+pub struct WuffsBox<T: WuffsBoxed> {
   handle: Vec<u8>,
   phantom: PhantomData<T>,
 }
 
-impl<T> WuffsBox<T> {
+impl<T: WuffsBoxed> WuffsBox<T> {
   /// Initialize WuffsBox with supplied size.
-  pub fn new(size: usize) -> Self {
+  pub fn new() -> Self {
     Self {
-      handle: vec![0; size],
+      handle: vec![0; T::size()],
       phantom: Default::default(),
     }
+  }
+
+  pub fn size(&self) -> usize {
+    T::size()
   }
 
   /// Cast to pointer
@@ -36,18 +39,12 @@ impl<T> WuffsBox<T> {
   }
 }
 
-/// Convert type into `wuffs_base__slice_u8`
-pub trait IntoWuffsSlice {
-  fn into_wuffs_slice_u8(self) -> wuffs_base__slice_u8;
+impl<T: WuffsBoxed> Default for WuffsBox<T> {
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
-impl<A: AsRef<[u8]>> IntoWuffsSlice for A {
-  fn into_wuffs_slice_u8(self) -> wuffs_base__slice_u8 {
-    let buf = self.as_ref();
-
-    wuffs_base__slice_u8 {
-      ptr: buf.as_ptr() as *mut _,
-      len: buf.len() as _,
-    }
-  }
+pub trait WuffsBoxed {
+  fn size() -> usize;
 }

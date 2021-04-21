@@ -1,10 +1,10 @@
+use super::WuffsHash;
 use crate::{
+  boxed::{WuffsBox, WuffsBoxed},
+  slice::WuffsSlice,
   status::{IntoResult, WuffsError},
-  types::{IntoWuffsSlice, WuffsBox},
 };
 use wuffs_sys::*;
-
-use super::WuffsHash;
 
 #[derive(Clone)]
 pub struct WuffsAdler32(WuffsBox<wuffs_adler32__hasher>);
@@ -12,13 +12,12 @@ pub struct WuffsAdler32(WuffsBox<wuffs_adler32__hasher>);
 impl WuffsAdler32 {
   pub fn new() -> Result<Self, WuffsError> {
     unsafe {
-      let size = sizeof__wuffs_adler32__hasher();
-      let mut inner = WuffsBox::new(size as _);
+      let mut inner = WuffsBox::new();
 
       wuffs_adler32__hasher__initialize(
         //
         inner.as_mut_ptr(),
-        size,
+        inner.size() as _,
         WUFFS_VERSION as _,
         0x00000001, // WUFFS_INITIALIZE__ALREADY_ZEROED
       )
@@ -30,10 +29,19 @@ impl WuffsAdler32 {
 }
 
 impl WuffsHash for WuffsAdler32 {
-  fn update(&mut self, buf: impl IntoWuffsSlice) -> u32 {
+  fn update<'a, S>(&mut self, buf: S) -> u32
+  where
+    S: Into<WuffsSlice<'a, u8>>,
+  {
     unsafe {
-      wuffs_adler32__hasher__update_u32(self.0.as_mut_ptr(), buf.into_wuffs_slice_u8())
+      wuffs_adler32__hasher__update_u32(self.0.as_mut_ptr(), buf.into().into_inner())
     }
+  }
+}
+
+impl WuffsBoxed for wuffs_adler32__hasher {
+  fn size() -> usize {
+    unsafe { sizeof__wuffs_adler32__hasher() as _ }
   }
 }
 
