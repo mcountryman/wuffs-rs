@@ -6,5 +6,4 @@ license = "Apache-2.0"
 description = "Bindings to wuffs."
 
 [dependencies]
-libc = "0.2"
 wuffs-sys = "0.1.0"

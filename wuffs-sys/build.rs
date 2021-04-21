@@ -25,7 +25,6 @@ fn main() {
     .allowlist_type(".*WUFFS.*")
     .allowlist_function(".*WUFFS.*")
     .allowlist_recursively(true)
-    // .allowlist_function("")
     .parse_callbacks(Box::new(bindgen::CargoCallbacks))
     .generate()
     .expect("Failed to generate bindings");
