@@ -2,6 +2,7 @@ use std::{marker::PhantomData, ops::Deref};
 
 use wuffs_sys::wuffs_base__slice_u8;
 
+#[derive(Clone)]
 pub enum WuffsSlice<'a, T: WuffsSliceImpl> {
   Owned(WuffsSliceOwned<T>),
   Borrowed(WuffsSliceBorrowed<'a, T>),
@@ -51,6 +52,7 @@ impl<T: WuffsSliceImpl> Deref for WuffsSlice<'_, T> {
   }
 }
 
+#[derive(Clone)]
 pub struct WuffsSliceOwned<T: WuffsSliceImpl> {
   data: Vec<T>,
   inner: T::Native,
@@ -76,6 +78,7 @@ impl<T: WuffsSliceImpl> Deref for WuffsSliceOwned<T> {
   }
 }
 
+#[derive(Clone)]
 pub struct WuffsSliceBorrowed<'a, T: WuffsSliceImpl> {
   inner: T::Native,
   phantom: PhantomData<&'a u8>,
@@ -106,7 +109,7 @@ impl<T: WuffsSliceImpl> Deref for WuffsSliceBorrowed<'_, T> {
 }
 
 pub trait WuffsSliceImpl: Sized + Clone {
-  type Native: WuffsSliceNative<Self>;
+  type Native: WuffsSliceNative<Self> + Clone;
 
   fn from(slice: &mut [Self]) -> Self::Native;
 
