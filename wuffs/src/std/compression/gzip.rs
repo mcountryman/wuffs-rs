@@ -3,7 +3,7 @@ use std::{io::BufRead, ptr::null_mut};
 use crate::{
   boxed::{WuffsBox, WuffsBoxed},
   slice::WuffsSliceOwned,
-  status::{IntoResult, WuffsError},
+  status::{IntoResult, WuffsError, WuffsStatus},
 };
 use wuffs_sys::{
   sizeof__wuffs_gzip__decoder, wuffs_gzip__decoder, wuffs_gzip__decoder__initialize,
@@ -41,13 +41,14 @@ impl WuffsGzipDecoder {
     let work_buf = vec![0; WORK_BUF_SIZE as _];
     let work_buf = WuffsSliceOwned::new(work_buf);
 
-    let status = unsafe {
+    let status: WuffsStatus<()> = unsafe {
       wuffs_gzip__decoder__transform_io(
         self.0.as_mut_ptr(),
         null_mut(),
         null_mut(),
-        work_buf,
+        work_buf.into_inner(),
       )
+      .into()
     };
     //
     // wuffs_base__io_transformer* self,

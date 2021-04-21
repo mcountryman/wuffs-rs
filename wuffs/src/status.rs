@@ -1,6 +1,11 @@
 use std::{borrow::Cow, error::Error, ffi::CStr, fmt::Display, iter::FromIterator};
 
-use wuffs_sys::wuffs_base__status;
+use wuffs_sys::{
+  wuffs_base__status, wuffs_base__suspension__even_more_information,
+  wuffs_base__suspension__mispositioned_read,
+  wuffs_base__suspension__mispositioned_write, wuffs_base__suspension__short_read,
+  wuffs_base__suspension__short_write,
+};
 
 pub trait IntoResult<T> {
   fn into_result(self) -> Result<T, WuffsError>;
@@ -16,83 +21,88 @@ where
   }
 }
 
-pub struct WuffsStatus<T> {
-  inner: String,
-  value: T,
+#[derive(Debug, Clone)]
+pub enum WuffsStatus<T = ()> {
+  Ok(T),
+  Err(WuffsError),
+  Suspension(WuffsSuspension),
+}
+
+#[derive(Debug, Clone)]
+pub enum WuffsError {
+  Message(String),
+  Suspension(WuffsSuspension),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum WuffsSuspension {
+  Unknown,
+  EvenMoreInformation,
+  MispositionedRead,
+  MispositionedWrite,
+  ShortRead,
+  ShortWrite,
 }
 
 impl<T> WuffsStatus<T> {
   pub fn into_result(self) -> Result<T, WuffsError> {
-    if self.is_error() {
-      Err(WuffsError::new(self.into_message()))
-    } else {
-      Ok(self.value)
-    }
-  }
-
-  pub fn is_ok(&self) -> bool {
-    !matches!(self.inner.chars().next(), Some('$') | Some('#'))
-  }
-
-  pub fn is_complete(&self) -> bool {
-    !matches!(self.inner.chars().next(), Some('$') | Some('#'))
-  }
-
-  pub fn is_error(&self) -> bool {
-    matches!(self.inner.chars().next(), Some('#'))
-  }
-
-  pub fn message(&self) -> Cow<'_, str> {
-    let mut chars = self.inner.chars();
-    match chars.next() {
-      Some('$') => Cow::from(String::from_iter(chars)),
-      Some('#') => Cow::from(String::from_iter(chars)),
-      Some('@') => Cow::from(String::from_iter(chars)),
-      _ => Cow::from(&self.inner),
-    }
-  }
-
-  pub fn into_message(self) -> String {
-    let mut chars = self.inner.chars();
-    match chars.next() {
-      Some('$') => String::from_iter(chars),
-      Some('#') => String::from_iter(chars),
-      Some('@') => String::from_iter(chars),
-      _ => self.inner,
+    match self {
+      Self::Ok(value) => Ok(value),
+      Self::Err(err) => Err(err),
+      Self::Suspension(suspension) => Err(WuffsError::Suspension(suspension)),
     }
   }
 }
 
 impl From<wuffs_base__status> for WuffsStatus<()> {
   fn from(inner: wuffs_base__status) -> Self {
-    unsafe {
-      let inner = inner.repr;
-      let inner = if inner.is_null() {
+    let repr = unsafe {
+      if inner.repr.is_null() {
         Cow::from("")
       } else {
-        CStr::from_ptr(inner).to_string_lossy()
-      };
+        CStr::from_ptr(inner.repr).to_string_lossy()
+      }
+    };
 
-      Self {
-        inner: inner.to_string(),
-        value: (),
+    let mut chars = repr.chars();
+    match chars.next() {
+      Some('$') => WuffsStatus::Suspension(WuffsSuspension::from_ptr(inner.repr)),
+      Some('#') => WuffsStatus::Err(chars.collect()),
+      // Some('@') => WuffsStatus::Note(?),
+      _ => WuffsStatus::Ok(()),
+    }
+  }
+}
+
+impl WuffsSuspension {
+  pub fn from_ptr(ptr: *const i8) -> Self {
+    unsafe {
+      if ptr == wuffs_base__suspension__even_more_information.as_ptr() {
+        WuffsSuspension::EvenMoreInformation
+      } else if ptr == wuffs_base__suspension__mispositioned_read.as_ptr() {
+        WuffsSuspension::MispositionedRead
+      } else if ptr == wuffs_base__suspension__mispositioned_write.as_ptr() {
+        WuffsSuspension::MispositionedWrite
+      } else if ptr == wuffs_base__suspension__short_read.as_ptr() {
+        WuffsSuspension::ShortRead
+      } else if ptr == wuffs_base__suspension__short_write.as_ptr() {
+        WuffsSuspension::ShortWrite
+      } else {
+        WuffsSuspension::Unknown
       }
     }
   }
 }
 
-#[derive(Debug)]
-pub struct WuffsError(String);
-
-impl WuffsError {
-  pub fn new(inner: String) -> Self {
-    Self(inner)
+impl FromIterator<char> for WuffsError {
+  fn from_iter<T: IntoIterator<Item = char>>(iter: T) -> Self {
+    Self::Message(String::from_iter(iter))
   }
 }
 
 impl Display for WuffsError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "{}", self.0)
+    write!(f, "{}", self)
   }
 }
 

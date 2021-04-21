@@ -13,6 +13,13 @@ impl<T: WuffsSliceImpl> WuffsSlice<'_, T> {
     Self::Borrowed(WuffsSliceBorrowed::from(inner))
   }
 
+  pub fn into_inner(self) -> T::Native {
+    match self {
+      Self::Owned(owned) => owned.into_inner(),
+      Self::Borrowed(borrowed) => borrowed.into_inner(),
+    }
+  }
+
   /// Convert read-only slice reference into a `T::Native`
   ///
   /// # Safety
@@ -46,8 +53,8 @@ impl<T: WuffsSliceImpl> Deref for WuffsSlice<'_, T> {
 
   fn deref(&self) -> &Self::Target {
     match self {
-      WuffsSlice::Owned(owned) => owned,
-      WuffsSlice::Borrowed(borrowed) => borrowed,
+      Self::Owned(owned) => owned,
+      Self::Borrowed(borrowed) => borrowed,
     }
   }
 }
@@ -67,6 +74,10 @@ impl<T: WuffsSliceImpl> WuffsSliceOwned<T> {
 
   pub fn into_data(self) -> Vec<T> {
     self.data
+  }
+
+  pub fn into_inner(self) -> T::Native {
+    self.inner
   }
 }
 
@@ -97,6 +108,10 @@ impl<'a, T: WuffsSliceImpl> WuffsSliceBorrowed<'a, T> {
       inner,
       phantom: Default::default(),
     }
+  }
+
+  pub fn into_inner(self) -> T::Native {
+    self.inner
   }
 }
 
