@@ -2,22 +2,26 @@
 // use wuffs_sys::{wuffs_base__io_buffer, wuffs_base__io_buffer_meta};
 
 // #[derive(Copy, Clone)]
-// pub struct WuffsIoBuffer(wuffs_base__io_buffer);
+// pub struct WuffsBuf(wuffs_base__io_buffer);
 
 // #[derive(Copy, Clone)]
-// pub struct WuffsIoBufferMeta(wuffs_base__io_buffer_meta);
+// pub struct WuffsBufferMeta(wuffs_base__io_buffer_meta);
 
-// impl WuffsIoBuffer {
-//   pub fn data(&self) -> WuffsSlice<u8> {
-//     WuffsSlice::new(self.0.data)
+// impl WuffsBuf {
+//   pub fn with_capacity(capacity: usize) -> WuffsBuf {
+//     todo!()
 //   }
 
-//   pub fn meta(&self) -> WuffsIoBufferMeta {
-//     WuffsIoBufferMeta(self.0.meta)
+//   pub fn data(&self) -> WuffsSlice<'_, u8> {
+//     WuffsSlice::from(self.0.data)
+//   }
+
+//   pub fn meta(&self) -> WuffsBufferMeta {
+//     WuffsBufferMeta(self.0.meta)
 //   }
 // }
 
-// impl WuffsIoBufferMeta {
+// impl WuffsBufferMeta {
 //   pub fn pos(&self) -> usize {
 //     self.0.pos as _
 //   }

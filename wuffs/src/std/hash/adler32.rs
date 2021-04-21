@@ -34,7 +34,7 @@ impl WuffsAdler32 {
     unsafe {
       wuffs_adler32__hasher__update_u32(
         self.0.as_mut_ptr(),
-        WuffsSlice::<u8>::into_readonly(buf.as_ref()),
+        WuffsSlice::<u8>::from_readonly(buf.as_ref()),
       )
     }
   }
