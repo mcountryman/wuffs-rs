@@ -26,16 +26,26 @@ impl WuffsCrc32 {
       Ok(Self(inner))
     }
   }
+
+  pub fn update<S>(&mut self, buf: S) -> u32
+  where
+    S: AsRef<[u8]>,
+  {
+    unsafe {
+      wuffs_crc32__ieee_hasher__update_u32(
+        self.0.as_mut_ptr(),
+        WuffsSlice::<u8>::into_readonly(buf.as_ref()),
+      )
+    }
+  }
 }
 
 impl WuffsHash for WuffsCrc32 {
-  fn update<'a, S>(&mut self, buf: S) -> u32
+  fn update<S>(&mut self, buf: S) -> u32
   where
-    S: Into<WuffsSlice<'a, u8>>,
+    S: AsRef<[u8]>,
   {
-    unsafe {
-      wuffs_crc32__ieee_hasher__update_u32(self.0.as_mut_ptr(), buf.into().into_inner())
-    }
+    self.update(buf)
   }
 }
 
@@ -47,8 +57,6 @@ impl WuffsBoxed for wuffs_crc32__ieee_hasher {
 
 #[cfg(test)]
 mod tests {
-  use crate::std::hash::WuffsHash;
-
   #[test]
   fn test_crc32() {
     let mut adler = super::WuffsCrc32::new().unwrap();

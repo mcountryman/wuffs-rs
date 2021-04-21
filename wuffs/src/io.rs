@@ -1,4 +1,4 @@
-// use crate::types::WuffsBox;
+// use crate::slice::WuffsSlice;
 // use wuffs_sys::{wuffs_base__io_buffer, wuffs_base__io_buffer_meta};
 
 // #[derive(Copy, Clone)]
@@ -8,8 +8,8 @@
 // pub struct WuffsIoBufferMeta(wuffs_base__io_buffer_meta);
 
 // impl WuffsIoBuffer {
-//   pub fn data(&self) -> WuffsSlice {
-//     WuffsSlice(self.0.data)
+//   pub fn data(&self) -> WuffsSlice<u8> {
+//     WuffsSlice::new(self.0.data)
 //   }
 
 //   pub fn meta(&self) -> WuffsIoBufferMeta {
